@@ -39,3 +39,11 @@ _Avoid_: cache, live data
 **External Trigger**:
 The existing hourly Jira→PR automation (`trig_0179N8uW4FxzHtfo6Eyp4qsX` in stock-infrastructure) that this platform displays but does not own or replace.
 _Avoid_: job, the trigger (ambiguous once this platform has its own internal triggers)
+
+**Diagnosis**:
+An AI-generated root-cause analysis of a detected issue, produced from application error logs or infra/ops signals (Prometheus/ArgoCD). Always paired with a Fix Proposal; never surfaced alone.
+_Avoid_: analysis, insight
+
+**Fix Proposal**:
+The output of a Diagnosis: either a draft PR (app-level, code fix) or a proposed infra/config change (infra-level). Always sits behind the Autonomy Gate — an Approver must explicitly apply it. The AI never auto-applies a fix.
+_Avoid_: auto-fix, suggestion (too weak — this is a concrete, reviewable artifact, not a hint)
