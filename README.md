@@ -4,8 +4,15 @@ A unified dashboard + orchestrator for the STOCK dev-workflow and ops pipeline: 
 
 STOCK is the first configured tenant, not a hardcoded assumption; the app is designed to onboard a second Jira project/repo-set later without a rewrite.
 
-See [`CONTEXT.md`](./CONTEXT.md) for the domain glossary and [`docs/adr/0001-platform-shape-and-scope.md`](./docs/adr/0001-platform-shape-and-scope.md) for why this exists and what it deliberately does and doesn't do.
+See [`CONTEXT.md`](./CONTEXT.md) for the domain glossary, [`docs/adr/0001-platform-shape-and-scope.md`](./docs/adr/0001-platform-shape-and-scope.md) for why this exists and what it deliberately does and doesn't do, and [`docs/adr/0002-tech-stack.md`](./docs/adr/0002-tech-stack.md) for the stack.
+
+## Stack
+
+Backend: FastAPI + PostgreSQL + SQLAlchemy/Alembic (Python 3.12) — matches stock-backend.
+Frontend: React 19 + TypeScript + Vite + TanStack Query + Tailwind — matches stock-frontend.
+Auth: GitHub OAuth SSO. Sync jobs: in-process APScheduler, no external queue.
+Deployment: Helm chart lives in stock-infrastructure's `charts/`, shipped via the existing ArgoCD GitOps flow.
 
 ## Status
 
-Early scaffold. Design settled via a grilling session; implementation not yet started.
+Design and stack settled via a grilling session. Implementation not yet started.
