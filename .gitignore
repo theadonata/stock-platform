@@ -1,0 +1,19 @@
+# Shared baseline — kept identical across all stock-* repos, see CLAUDE.md
+.env
+.env.local
+.claude/settings.local.json
+
+# Repo-specific — Python (FastAPI backend, see ADR-0002)
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+*.egg-info/
+
+# Repo-specific — Node/Vite (React frontend, see ADR-0002)
+node_modules
+dist
+dist-ssr
+*.local
+coverage
+*.tsbuildinfo

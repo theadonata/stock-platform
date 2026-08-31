@@ -1,0 +1,113 @@
+# CLAUDE.md
+
+This is the **platform** repo for the Stock/HPP business-finance project: a
+unified dashboard + orchestrator for the dev-workflow and ops pipeline
+(brainstorm → ADR → Jira subtasks → draft PR → merge, plus infra/ops
+observability). See `README.md` and `CONTEXT.md` for what this app is and
+`docs/adr/` for why.
+
+## Project status
+
+Stack chosen: FastAPI + PostgreSQL + SQLAlchemy/Alembic (Python 3.12) for
+the backend, React 19 + TypeScript + Vite + TanStack Query + Tailwind for
+the frontend — matching `stock-backend` and `stock-frontend` exactly. See
+`docs/adr/0002-tech-stack.md` for the full rationale, and
+`docs/adr/0001-platform-shape-and-scope.md` / `docs/adr/0003-ai-assisted-fix-proposals.md`
+for scope and the AI diagnosis design.
+
+## Relationship to sibling repos
+
+This project is split across independent repos, each buildable and
+deployable on its own with no shared code or path dependency between them:
+
+- `stock-frontend` — client-side UI
+- `stock-backend` — API / business logic / data layer
+- `stock-infrastructure` — CI/CD, deployment, IaC
+- `stock-qa` — test plans, test automation
+- `stock-business-analyst` — requirements, specs, source material (incl. the original HPP/business-finance notes)
+- `stock-platform` (this repo) — unified dev-workflow/ops dashboard and orchestrator
+
+Contracts this repo consumes (stock-backend/stock-frontend API shapes,
+stock-infrastructure's Helm/ArgoCD conventions, etc.) should be treated as
+external and versioned/documented, not assumed from source. This repo's own
+Helm chart lives in `stock-infrastructure`'s `charts/`, not here — see
+ADR-0002's Consequences.
+
+## Working here
+
+`.claude/` config (agents, hooks, skills, MCP) is kept identical across all
+six repos on purpose, so any agent persona works the same way regardless of
+which repo it's invoked in. Implementation hasn't started yet (see
+README.md Status) — once it does, update this file with real build/lint/test
+commands and architecture notes.
+
+## Skill Activation
+
+At the start of any task-oriented session — any interaction where you will
+use tools and produce deliverables — invoke the task-observer skill before
+beginning work. This ensures skill improvement opportunities are captured
+throughout the session.
+
+When loading any skill, check the observation log for OPEN observations
+tagged to that skill. Apply their insights to the current work, even if
+the skill file hasn't been updated yet. This enables immediate application
+of observations before they're permanently integrated during the weekly
+review.
+
+## Git
+
+Commit, push, and open a PR automatically as part of completing a task —
+this is standing authorization across all six `stock-*` repos, no need to
+ask first each time. Use atomic-commit (or equivalent judgment) to split
+work into logical commits, then push the branch and open the PR without
+waiting for a separate go-ahead.
+
+Never push directly to the `main` branch, even when explicitly asked to
+"push" or "commit and push" — `main` is protected and requires a pull
+request. Always push to a new branch and open a PR instead, across all
+six `stock-*` repos.
+
+Always branch off `main` for new work, and sync first: run
+`git fetch origin && git merge --ff-only origin/main` (or
+`git pull --ff-only`) before creating the branch — cutting a branch from a
+stale local `main` produces a PR with a stale diff or spurious merge
+conflicts.
+
+## Code style
+
+Always put comments in code so it is understandable by a human reader —
+explain what non-obvious blocks (business logic, sync/orchestration rules,
+component logic) do, not just restate the syntax.
+
+## Environment files
+
+Always use `.env.local` for local config — never create or reintroduce a
+`.env.example`/`.env.sample` template file. `.env.local` already exists in
+this repo (gitignored) and holds the real placeholder values directly; if a
+new env var is needed, add it straight to `.env.local` (with a comment
+explaining it) rather than adding a separate example file for someone to
+copy from.
+
+MCP servers configured in `.mcp.json` that reference `${VAR_NAME}` (e.g.
+the `github` server needs `GITHUB_PERSONAL_ACCESS_TOKEN`) read from the
+process environment, which is not populated automatically. Before using
+such an MCP server or making authenticated GitHub calls, read the value
+out of this repo's `.env.local` (e.g.
+`grep GITHUB_PERSONAL_ACCESS_TOKEN .env.local`) and export it for the
+current shell — don't assume it's already set.
+
+## Gitignore
+
+Always ensure a `.gitignore` exists in this repo — never let it be
+deleted or skipped when scaffolding. It has two parts:
+
+- A **shared baseline** kept identical (word-for-word) across all six
+  `stock-*` repos: `.env`, `.env.local`, `.claude/settings.local.json`. If
+  you add an entry to this shared baseline in any one repo, add the same
+  line to the other five repos' `.gitignore` files too, so they stay in
+  sync.
+- **Repo-specific entries** below the baseline (this repo has both a
+  Python section — `__pycache__/`, `.venv/` — and a Node/Vite section —
+  `node_modules`, `dist` — since it combines a FastAPI backend and a React
+  frontend in one repo) — these are expected to differ per repo's tooling
+  and should NOT be copied to siblings.
