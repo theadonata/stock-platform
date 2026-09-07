@@ -1,0 +1,56 @@
+# Local dev only. Runs the FastAPI backend + a Postgres instance together.
+# The frontend is run separately via `npm run dev` (frontend/) rather than
+# containerized here, matching how a Vite dev server is normally used.
+#
+# Names are prefixed with `stock_platform` (container, db, volume) rather
+# than generic names like `postgres`/`db`, so this stack doesn't collide
+# with other local stock-* projects' docker resources.
+
+services:
+  stock_platform_postgres:
+    build:
+      context: ./database
+      dockerfile: Dockerfile
+    container_name: stock_platform_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: stock_platform_user
+      POSTGRES_PASSWORD: stock_platform_pass
+      POSTGRES_DB: stock_platform_db
+    ports:
+      # Exposed on the host on a port distinct from stock-backend's own
+      # docker-compose (5433), so both stacks can run side by side locally.
+      - "5434:5432"
+    volumes:
+      - stock_platform_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U stock_platform_user -d stock_platform_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  stock_platform_backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: stock_platform_backend
+    restart: unless-stopped
+    env_file:
+      - .env.local
+    environment:
+      # Overrides the .env.local DB host (localhost isn't reachable from
+      # inside a container) to point at the compose service name instead.
+      DATABASE_URL: postgresql+psycopg2://stock_platform_user:stock_platform_pass@stock_platform_postgres:5432/stock_platform_db
+    ports:
+      - "8001:8000"
+    depends_on:
+      stock_platform_postgres:
+        condition: service_healthy
+    # Run pending migrations, then start the API — keeps "docker compose up"
+    # a single command for local dev instead of a separate migrate step.
+    command: >
+      sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+
+volumes:
+  stock_platform_pgdata:
+    name: stock_platform_pgdata
