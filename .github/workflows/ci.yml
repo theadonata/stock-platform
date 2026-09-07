@@ -1,0 +1,57 @@
+name: CI
+
+# Modeled on stock-qa's split between API-level and UI-level checks, adapted
+# to this repo's own backend/frontend layout (stock-qa tests a *running*
+# stock-backend as a black box; here the checks run against this repo's own
+# code instead).
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: stock_platform_user
+          POSTGRES_PASSWORD: stock_platform_pass
+          POSTGRES_DB: stock_platform_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U stock_platform_user -d stock_platform_db"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql+psycopg2://stock_platform_user:stock_platform_pass@localhost:5432/stock_platform_db
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install ruff .[dev]
+      - run: ruff check .
+      - run: alembic upgrade head
+      - run: pytest
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+      - run: npm run test
