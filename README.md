@@ -16,4 +16,15 @@ AI: Claude API (Sonnet 5 default, configurable per call) + tool-use, wrapped in 
 
 ## Status
 
-Design and stack settled via a grilling session. Implementation not yet started.
+Design and stack settled via a grilling session. Backend and frontend
+scaffolding is in place (`backend/`, `frontend/`, `database/`) with CI
+wired; no product features implemented yet — see the STOCK Jira project
+for the ticket breakdown.
+
+## Repository layout
+
+- `backend/` — FastAPI app (ADR-0002), Alembic migrations, tests
+- `frontend/` — React 19 + Vite + TanStack Query + Tailwind app, tests
+- `database/` — standalone Postgres image + `initdb/` bootstrap scripts
+- `docker-compose.yml` — local dev: backend + Postgres (frontend runs via
+  `npm run dev` in `frontend/`, not containerized)
