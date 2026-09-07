@@ -55,3 +55,61 @@ jobs:
       - run: npm run lint
       - run: npm run build
       - run: npm run test
+
+  secret-scan:
+    name: Secret scanning (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Run gitleaks
+        uses: gitleaks/gitleaks-action@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  dependency-review:
+    name: Dependency scanning
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Dependency review
+        uses: actions/dependency-review-action@v5
+        with:
+          fail-on-severity: high
+
+  container-scan:
+    name: Container/config scan (Trivy, ${{ matrix.scope.category }})
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    strategy:
+      matrix:
+        # Scoped scans (not one combined scan-ref: .), matching
+        # stock-infrastructure's ci.yml iac-scan job: keeps unrelated stray
+        # files out of each scan and shows each category separately in the
+        # Security tab.
+        scope:
+          - { path: backend, category: backend-dockerfile }
+          - { path: database, category: database-dockerfile }
+          - { path: docker-compose.yml, category: docker-compose }
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Run Trivy config scan
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: config
+          scan-ref: ${{ matrix.scope.path }}
+          format: sarif
+          output: trivy-results.sarif
+          severity: "HIGH,CRITICAL"
+
+      - name: Upload results to GitHub Security tab
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: trivy-results.sarif
+          category: ${{ matrix.scope.category }}
